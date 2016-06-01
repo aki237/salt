@@ -43,7 +43,7 @@ var app_json string =
     "Database" : {
         "Username" : ${Username},
         "Password" : ${Password},
-        "Database" : ${Database},
+        "Database" : ${Database}
     }
 }`
 
@@ -176,7 +176,7 @@ func create(args []string)  {
 		return
 	}
 	app_json = Replace(app_json, webappname)
-	err = ioutil.WriteFile(wd + "/" + webappname + "/app.json",[]byte(app_json), 0644xs)
+	err = ioutil.WriteFile(wd + "/" + webappname + "/app.json",[]byte(app_json), 0644)
 	if err != nil {
 		fmt.Println(RED,err)
 		return
