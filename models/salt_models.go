@@ -9,12 +9,16 @@ import (
 )
 type Fields    map[string]Field
 type Objects   []Object
-type Object    map[string]interface{}
+
+type Object struct {
+	Object map[string]interface{}
+}
 
 type Field struct {
 	Type            Type
 	AutoIncrement   bool
 	NotNull         bool
+	Unique          bool
 }
 
 type Model struct {
@@ -36,6 +40,7 @@ type Database struct {
 
 const(
 	CharField     Type = "string"
+	TextField     Type = "text"
 	Integer       Type = "int"
 	Float         Type = "float"
 	Boolean       Type = "bool"
@@ -130,28 +135,33 @@ func (model *Model) AddToDataBase() (error) {
 	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
 	defer db.Close()
 	if err != nil {
-		return nil
+		return err
 	}
 	query := "CREATE TABLE `"
 	query += model.Name
 	query += "` ( "
 	for fieldName,fieldType  := range model.Fields {
-		query += fieldName + " "
+		query += fieldName
 		switch fieldType.Type {
 		case CharField:
-			query += "TEXT"
+			query += " varchar(255)"
+		case TextField:
+			query += " TEXT"
 		case Integer:
-			query += "INT"
+			query += " INT"
 		case Float:
-			query += "DOUBLE"
+			query += " DOUBLE"
 		case Boolean:
-			query += "BOOL"
+			query += " BOOL"
 		}
 		if fieldType.AutoIncrement {
 			query += " AUTO_INCREMENT"
 		}
 		if fieldType.NotNull {
 			query +=  " NOT NULL"
+		}
+		if fieldType.Unique {
+			query +=  " UNIQUE"
 		}
 		query += ","
 	}
@@ -171,54 +181,9 @@ func (model *Model) AddToDataBase() (error) {
 
 //
 func (model *Model)GetAll()(error)  {
-	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
-	defer db.Close()
-	if err != nil {
-		return nil
-	}
-	rows, err := db.Query("SELECT * FROM `"+model.Name+"`")
-	defer rows.Close()
-	if err != nil {
-		return err
-	}
-	arr , err := rows.Columns()
-	if err != nil {
-		return err
-	}
-	inner := make([]interface{},len(arr))
-	elements := make([]interface{},len(arr))
-	for i,_ := range inner {
-		elements[i] = &inner[i]
-	}
-	for rows.Next() {
-		err = rows.Scan(elements...)
-		for i,val := range arr {
-			tstr := fmt.Sprintf("%#s",(*elements[i].(*interface{})).([]uint8))
-			fmt.Println(val,tstr)
-			tobj := make(Object,0)
-			switch model.Fields[val].Type {
-			case CharField:
-				tobj[val] = tstr
-			case Integer:
-				tobj[val],err = strconv.Atoi(tstr)
-				if err != nil {
-					return err
-				}
-			case Float:
-				tobj[val],err = strconv.ParseFloat(tstr, 64)
-				if err != nil {
-					return err
-				}
-			case Boolean:
-				tobj[val],err = strconv.ParseBool(tstr)
-				if err != nil {
-					return err
-				}
-			}
-			model.Objects = append(model.Objects,tobj)
-		}
-	}
-	return nil
+	objects,err := model.GetRecord("")
+	model.Objects = objects
+	return err
 }
 
 //
@@ -226,7 +191,7 @@ func (model *Model) AddNewRecord (object Object) (error) {
 	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
 	defer db.Close()
 	if err != nil {
-		return nil
+		return err
 	}
 	rows, err := db.Query("SELECT * FROM `"+model.Name+"`")
 	defer rows.Close()
@@ -241,10 +206,10 @@ func (model *Model) AddNewRecord (object Object) (error) {
 	var columns string = " ("
 	var values string = " VALUES ("
 	for _,val := range arr {
-		if value,ok := object[val] ; ok {
+		if value,ok := object.Object[val] ; ok {
 			columns += "`" + val + "`,"
 			switch model.Fields[val].Type {
-			case CharField:
+			case CharField,TextField:
 				values += "\""+value.(string)+"\","
 			case Integer:
 				values += fmt.Sprint(value.(int)) + ","
@@ -266,4 +231,75 @@ func (model *Model) AddNewRecord (object Object) (error) {
 		return err
 	}
 	return err
+}
+
+//
+func (model *Model) DeleteRecord(stmt string)(error) {
+	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
+	defer db.Close()
+	if err != nil {
+		return err
+	}
+	_,err = db.Query("DELETE FROM "+model.Name+" WHERE "+stmt)
+	if err != nil {
+		return err
+	}
+	return model.GetAll()
+}
+
+//
+func (model *Model) GetRecord(query string)(Objects,error) {
+	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
+	defer db.Close()
+	if err != nil {
+		return Objects{},err
+	}
+	rows, err := db.Query("SELECT * FROM `"+model.Name+"` WHERE "+query)
+	if query == "" {
+		rows, err = db.Query("SELECT * FROM `"+model.Name+"`")
+	}
+	defer rows.Close()
+	if err != nil {
+		return Objects{},err
+	}
+	arr , err := rows.Columns()
+	if err != nil {
+		return Objects{},err
+	}
+	inner := make([]interface{},len(arr))
+	elements := make([]interface{},len(arr))
+	for i,_ := range inner {
+		elements[i] = &inner[i]
+	}
+	returnobj := make(Objects,0)
+	for rows.Next() {
+		tobj := Object{}
+		tobj.Object = make(map[string]interface{},0)
+		err = rows.Scan(elements...)
+		for i,val := range arr {
+			tstr := fmt.Sprintf("%#s",(*elements[i].(*interface{})).([]uint8))
+			fmt.Println(val,tstr,"<+++++++",model.Fields[val].Type)
+			switch model.Fields[val].Type {
+			case CharField,TextField:
+				tobj.Object[val] = tstr
+			case Integer:
+				tobj.Object[val],err = strconv.Atoi(tstr)
+				if err != nil {
+					return Objects{},err
+				}
+			case Float:
+				tobj.Object[val],err = strconv.ParseFloat(tstr, 64)
+				if err != nil {
+					return Objects{},err
+				}
+			case Boolean:
+				tobj.Object[val],err = strconv.ParseBool(tstr)
+				if err != nil {
+					return Objects{},err
+				}
+			}
+		}
+		returnobj = append(returnobj,tobj)
+	}
+	return returnobj,nil
 }
