@@ -5,10 +5,10 @@ import (
 	"html/template"
 )
 
-func PushTemplate(filename string, w salt.ResponseBuffer ,fillers interface{}) (error) {
+func PushTemplate(filename string, w *salt.ResponseBuffer ,fillers interface{}) (error) {
 	t,err := template.ParseFiles(filename)
 	if err != nil {
 		return err
 	}
-	return t.Execute(w, fillers)
+	return t.Execute(*w, fillers)
 }
