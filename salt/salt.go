@@ -101,10 +101,10 @@ var Models models.Models = models.Models{
 	models.Model{
 		Name : "NEWMODEL",
 		Fields: models.Fields{
-			"ID":models.Field{models.Integer,true,true},
-			"MODEL_ENTITY_1":models.Field{models.CharField,false,false},
-			"MODEL_ENTITY_2":models.Field{models.CharField,false,false},
-			"MODEL_ENTITY_3":models.Field{models.CharField,false,false},
+			"ID":models.Field{models.Integer,true,true,true},
+			"MODEL_ENTITY_1":models.Field{models.CharField,false,false,false},
+			"MODEL_ENTITY_2":models.Field{models.CharField,false,false,false},
+			"MODEL_ENTITY_3":models.Field{models.CharField,false,false,false},
 		},
 		PrimaryKey : "ID",
 	},
