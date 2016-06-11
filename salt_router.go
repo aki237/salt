@@ -249,3 +249,13 @@ func (newroute Route) AddNewRouteObject() error {
 	routes = append(routes, newroute)
 	return nil
 }
+
+//GetFormValue returns the form value for the given name "key" and error.
+func (r *RequestBuffer) GetFormValue(key string) (string,error) {
+	err := r.ParseForm()
+	if err != nil {
+		return "",err
+	}
+
+	return r.FormValue(key),nil
+}
