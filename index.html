@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Salt by aki237</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-dark.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Salt</h1>
+        <p>yet another tasty {M}VC for golang</p>
+        <p class="view"><a href="https://github.com/aki237/salt">View the Project on GitHub <small>aki237/salt</small></a></p>
+        <ul>
+          <li><a href="https://github.com/aki237/salt/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/aki237/salt/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/aki237/salt">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="salt--yet-another-tasty-mvc-for-golang" class="anchor" href="#salt--yet-another-tasty-mvc-for-golang" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>salt : yet another tasty {M}VC for golang</h1>
+
+<p><img src="res/salt.png" alt="salt"></p>
+
+<h2>
+<a id="intro" class="anchor" href="#intro" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Intro</h2>
+
+<p>Salt is a go package to improve routing upon the standard http package. It has inbuilt mechanisms to maintain models and connect to databases(only MySQL for now).</p>
+
+<h2>
+<a id="quickstart" class="anchor" href="#quickstart" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Quickstart</h2>
+
+<p>This repo contains a salt cmd tool.</p>
+
+<div class="highlight highlight-source-shell"><pre>salt create [appname]</pre></div>
+
+<h3>
+<a id="app-structure" class="anchor" href="#app-structure" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>App structure</h3>
+
+<p>It creates a folder of the same name with a sample app contained in it.
+The general folder stucture will be like : (Sample App name : sampleapp)</p>
+
+<pre><code>--- sampleapp/
+          |------- app.json
+          |------- sampleapp.go
+          |------- sampleapp/
+                        |------- app.go
+                        |------- models.go
+                        |------- urls.go
+                        |------- views.go
+          |------- static/
+
+</code></pre>
+
+<h4>
+<a id="appjson" class="anchor" href="#appjson" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>app.json</h4>
+
+<p>The file app.json is the app configuration for the web application.</p>
+
+<div class="highlight highlight-source-json"><pre>{
+    <span class="pl-s"><span class="pl-pds">"</span>Debug<span class="pl-pds">"</span></span> : <span class="pl-c1">true</span>,
+    <span class="pl-s"><span class="pl-pds">"</span>ListenVars<span class="pl-pds">"</span></span> : {
+        <span class="pl-s"><span class="pl-pds">"</span>Port<span class="pl-pds">"</span></span> : <span class="pl-s"><span class="pl-pds">"</span>8080<span class="pl-pds">"</span></span>,
+        <span class="pl-s"><span class="pl-pds">"</span>Address<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>127.0.0.1<span class="pl-pds">"</span></span>
+    },
+    <span class="pl-s"><span class="pl-pds">"</span>Static<span class="pl-pds">"</span></span> : {
+        <span class="pl-s"><span class="pl-pds">"</span>StaticURI<span class="pl-pds">"</span></span> : <span class="pl-s"><span class="pl-pds">"</span>/static/<span class="pl-pds">"</span></span>,
+        <span class="pl-s"><span class="pl-pds">"</span>StaticDirs<span class="pl-pds">"</span></span> : [<span class="pl-s"><span class="pl-pds">"</span>static/<span class="pl-pds">"</span></span>]
+    },
+    <span class="pl-s"><span class="pl-pds">"</span>Database<span class="pl-pds">"</span></span> : {
+        <span class="pl-s"><span class="pl-pds">"</span>Username<span class="pl-pds">"</span></span> : <span class="pl-ii">$</span>{<span class="pl-ii">Username</span>},
+        <span class="pl-s"><span class="pl-pds">"</span>Password<span class="pl-pds">"</span></span> : <span class="pl-ii">$</span>{<span class="pl-ii">Password</span>},
+        <span class="pl-s"><span class="pl-pds">"</span>Database<span class="pl-pds">"</span></span> : <span class="pl-ii">$</span>{<span class="pl-ii">Database</span>}
+    }
+}</pre></div>
+
+<p>The json fields are self explainatory.
+Now change the variables accordingly for you set-up. Be sure to change the Database connection settings.</p>
+
+<h4>
+<a id="sampleappgo-or-appnamego" class="anchor" href="#sampleappgo-or-appnamego" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>sampleapp.go or [appname].go</h4>
+
+<p>This is the entry point of the binary. ie., This is the "main" package or conatins the main function.
+Root app and other apps are added and managed through this entry point.</p>
+
+<h4>
+<a id="sampleapp" class="anchor" href="#sampleapp" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>sampleapp/</h4>
+
+<p>This is the directory that contains the root app's contents. The name of the root app can be changed by changing the
+package name in the go files in the directory and the bettr the directory itself. The app can be reconfigured after
+renaming from the [appname].go</p>
+
+<h4>
+<a id="appgo" class="anchor" href="#appgo" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>app.go</h4>
+
+<p>This is the app setting file or the app configuration file. Name of the app, Models, URL routing patterns and Base
+URL can be specified in this file.</p>
+
+<h4>
+<a id="modelsgo" class="anchor" href="#modelsgo" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>models.go</h4>
+
+<p>This contains the models. These models get automatically migrated when the app is being run. Yet there is an issue
+that if the model description change for a particular table, migration of database to the new table configuration
+is not implemented.
+Before running the app please be sure to form the models or clear all the models (if not using). This may affect
+your mysql database.</p>
+
+<h4>
+<a id="urlsgo" class="anchor" href="#urlsgo" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>urls.go</h4>
+
+<p>Simple. This contains the urls routing patterns. salt has been written so that URL regexp matching is done during runtime.
+So salt is not only limited to1 static URL routing (as in net/http)</p>
+
+<h4>
+<a id="viewsgo" class="anchor" href="#viewsgo" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>views.go</h4>
+
+<p>This contains the functions that generates the views for the specified URL Patterns. Add a new view and a url routing
+before running the new app or remove the import statement in this file.</p>
+
+<h3>
+<a id="run-the-app" class="anchor" href="#run-the-app" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Run the app</h3>
+
+<p>To run it either</p>
+
+<div class="highlight highlight-source-shell"><pre>salt run [appname]</pre></div>
+
+<p>or</p>
+
+<div class="highlight highlight-source-shell"><pre>go run [appname].go</pre></div>
+
+<p>inside that folder.</p>
+
+<p>You can see the home page like this:
+<img src="res/home.png" alt="Salt Home Page"></p>
+
+<p>Documentation is under process. For now refer to the godoc page. For further issues, well, use the github issue utility to file any.</p>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/aki237">aki237</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
