@@ -34,14 +34,14 @@ type App struct {
 
 //Struct for storing the config read in the app.json file of the app
 type Config struct{
-	Debug bool 
+	Debug bool
 	ListenVars struct{
-		Port string 
-		Address string 
+		Port string
+		Address string
 	}
 	Static struct{
-		StaticURI string 
-		StaticDirs []string 
+		StaticURI string
+		StaticDirs []string
 	}
 	Database models.Database
 }
@@ -66,6 +66,7 @@ func Run() error {
 	return http.ListenAndServe(config.ListenVars.Address+":"+config.ListenVars.Port, nil)
 }
 
+//RunAt is similar to the Run function, but it doesn't take the listen variables form the configuraton imported.
 func RunAt(serveaddr string) error {
 	http.HandleFunc("/", router)
 	return http.ListenAndServe(serveaddr, nil)
@@ -79,7 +80,7 @@ func StaticServe(w ResponseBuffer, r *RequestBuffer)  {
 	filename = strings.Replace(filename , "../","_",-1)
 	filename = strings.Replace(filename , "./","/",-1)
 	extention := strings.Split(filename, ".")[len(strings.Split(filename, ".")) - 1]
-	
+
 	for _,entry := range config.Static.StaticDirs {
 		if exists(entry + "/" + filename) {
 			contenttype := mime.TypeByExtension("."+extention)
@@ -94,29 +95,29 @@ func StaticServe(w ResponseBuffer, r *RequestBuffer)  {
 			return
 		}
 	}
-	
-	Func404(w,r)	
+
+	Func404(w,r)
 }
 
 //This function is used to configure a particular web-app
 func Configure(filename string)(error)  {
-	
+
 	content, err := ioutil.ReadFile(filename)
 	if(err != nil){
 		return err
 	}
 
-	
+
 	err = json.Unmarshal(content,&config)
 	if (len(config.Static.StaticURI) > 0){
 		log("Static File Directories detected : " , config.Static.StaticDirs)
 		if (string(config.Static.StaticURI[0]) != "/"){
 			config.Static.StaticURI = "^/" + config.Static.StaticURI
 		} else {
-			config.Static.StaticURI = "^" + config.Static.StaticURI			
+			config.Static.StaticURI = "^" + config.Static.StaticURI
 		}
 
-		
+
 		if (string(config.Static.StaticURI[len(config.Static.StaticURI)-1]) != "/"){
 			config.Static.StaticURI = config.Static.StaticURI + "/"
 		}
@@ -140,7 +141,7 @@ func Configure(filename string)(error)  {
 			Handler : StaticServe,
 		}
 		static.AddRoute()
-		
+
 	}
 	fmt.Println(config)
 	err = models.SetDatabaseConfig(config.Database)
@@ -196,7 +197,7 @@ func AddRootApp(app App) (error) {
 
 
 
-//This function is used to add a new app to the web-app. A web-app can contian more than one auxillary apps. 
+//This function is used to add a new app to the web-app. A web-app can contian more than one auxillary apps.
 func AddApp(app App) (error)  {
 	if (!configured){
 		return errors.New("The app is not configured")
@@ -220,7 +221,7 @@ func AddApp(app App) (error)  {
 	for index,_ := range app.URLS {
 		app.URLS[index].Pattern = app.BaseURL + app.URLS[index].Pattern
 	}
-	
+
 	app.URLS.AddRoutes()
 	return app.Models.Register()
 }
@@ -313,7 +314,7 @@ func SampleHome(w ResponseBuffer, r *RequestBuffer)  {
 	</body>
 	</html>`
 	fmt.Fprint(w, homecontent)
-	
+
 }
 
 

@@ -7,13 +7,19 @@ import (
 	"strconv"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+//Fields type for containing model columns
 type Fields    map[string]Field
+
+//Objects type for containing the database results
 type Objects   []Object
 
+//Object type for containing the database results and inputs
 type Object struct {
 	Object map[string]interface{}
 }
 
+//Field struct for conatining the column information in models
 type Field struct {
 	Type            Type
 	AutoIncrement   bool
@@ -21,6 +27,7 @@ type Field struct {
 	Unique          bool
 }
 
+//Model struct for the database table information
 type Model struct {
 	Name             string
 	Fields           Fields
@@ -28,10 +35,13 @@ type Model struct {
 	PrimaryKey       string
 }
 
+//Models type : array of Model struct
 type Models []Model
 
+//Type : new type for models field type
 type Type string
 
+//Database type : struct to contain the database information
 type Database struct {
 	Username string `json:"Username"`
 	Password string `json:"Password"`
@@ -302,4 +312,12 @@ func (model *Model) GetRecord(query string)(Objects,error) {
 		returnobj = append(returnobj,tobj)
 	}
 	return returnobj,nil
+}
+
+//NewObject returns a Object struct object with the variables initialised.
+func NewObject() (Object) {
+	var newobj Object = Object{
+		Object : make(map[string]interface{}, 0),
+	}
+	return newobj
 }

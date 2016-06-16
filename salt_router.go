@@ -1,5 +1,3 @@
-//Package that implements the regexp URL handling upon the http standard package
-//
 //The standard http package implements most of the server based functions. But the default route handler
 // ie., the http.HandleFunc is unable to handle urls with regexp as in Django or any other web framework.
 //This package implements the regexp routing of urls upon the standard net/http concepts.
@@ -83,14 +81,16 @@ type RequestBuffer struct {
 //Global Private variable that contains all the registered routes
 var routes []Route
 
+//This is the variable of the type func(w ResponseBuffer , r *RequestBuffer),
+//This variable can be configured to run a custom 404 function, instead of the default one.
 var Func404 func(w ResponseBuffer , r *RequestBuffer) = Default404
 
-//
+//Default404 is the default 404 Not Found function.
 func Default404(w ResponseBuffer , r *RequestBuffer)  {
 	fmt.Fprint(w,"Page not found")
 }
 
-//
+//This is used to add a custom salt handler function for the salt app.
 func Add404(Handler  func(ResponseBuffer, *RequestBuffer))  {
 	Func404 = Handler
 }

@@ -50,3 +50,16 @@ func ExampleAddNewRouteObject(){
 	// Error : .....
 	// Error : .....
 }
+
+func ExampleConfigure(){
+	//This step is to configure a salt app
+	err := salt.Configure("app.json")
+	if err != nil {
+		//Do the error handling
+		fmt.Println(err)
+	}
+	// Output:
+	// [Static File Directories detected :  [static/]]
+	// [pattern =  ^/static/(?P<staticfile>.+)]
+	// {true {8080 127.0.0.1} {^/static/ [static/]} {${Username} ${Password} ${Database}}}
+}
