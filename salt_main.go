@@ -44,6 +44,10 @@ type Config struct{
 		StaticDirs []string
 	}
 	Database models.Database
+	TLS struct{
+		PrivateKey  string
+		Certificate string
+	}
 }
 
 //The runtime variable : config - containing the configuration of an web-app read from the file passed
@@ -66,6 +70,12 @@ func Run() error {
 	return http.ListenAndServe(config.ListenVars.Address+":"+config.ListenVars.Port, nil)
 }
 
+func RunTLS() error {
+	http.HandleFunc("/", router)
+	return http.ListenAndServeTLS(config.ListenVars.Address+":"+config.ListenVars.Port,
+		config.TLS.Certificate, config.TLS.PrivateKey, nil)
+}
+
 //RunAt is similar to the Run function, but it doesn't take the listen variables form the configuraton imported.
 func RunAt(serveaddr string) error {
 	http.HandleFunc("/", router)
@@ -76,7 +86,6 @@ func RunAt(serveaddr string) error {
 //configuration file at the static URL pattern (which again should also be specified in the config file).
 func StaticServe(w ResponseBuffer, r *RequestBuffer)  {
 	filename := r.URLParameters["staticfile"].(string)
-	log(filename)
 	filename = strings.Replace(filename , "../","_",-1)
 	filename = strings.Replace(filename , "./","/",-1)
 	extention := strings.Split(filename, ".")[len(strings.Split(filename, ".")) - 1]
@@ -89,7 +98,6 @@ func StaticServe(w ResponseBuffer, r *RequestBuffer)  {
 			if err != nil{
 				fmt.Fprint(w,err.Error())
 			} else {
-				log(filename," found in ",entry)
 				w.Write(filebyte)
 			}
 			return
