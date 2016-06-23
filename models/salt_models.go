@@ -191,7 +191,7 @@ func (model *Model) AddToDataBase() (error) {
 
 //
 func (model *Model)GetAll()(error)  {
-	objects,err := model.GetRecord("")
+	objects,err := model.GetRecord("",nil)
 	model.Objects = objects
 	return err
 }
@@ -244,13 +244,17 @@ func (model *Model) AddNewRecord (object Object) (error) {
 }
 
 //
-func (model *Model) DeleteRecord(stmt string)(error) {
+func (model *Model) DeleteRecord(field string, value interface{})(error) {
+	query,err := model.FormStatement(field,value)
+	if err!= nil {
+		return err
+	}
 	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
 	defer db.Close()
 	if err != nil {
 		return err
 	}
-	_,err = db.Query("DELETE FROM "+model.Name+" WHERE "+stmt)
+	_,err = db.Query("DELETE FROM "+model.Name+" WHERE "+query)
 	if err != nil {
 		return err
 	}
@@ -258,7 +262,11 @@ func (model *Model) DeleteRecord(stmt string)(error) {
 }
 
 //
-func (model *Model) GetRecord(query string)(Objects,error) {
+func (model *Model) GetRecord(field string, value interface{})(Objects,error) {
+	query,err := model.FormStatement(field,value)
+	if err != nil {
+		return Objects{},err
+	}
 	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
 	defer db.Close()
 	if err != nil {
@@ -287,7 +295,10 @@ func (model *Model) GetRecord(query string)(Objects,error) {
 		tobj.Object = make(map[string]interface{},0)
 		err = rows.Scan(elements...)
 		for i,val := range arr {
-			tstr := fmt.Sprintf("%#s",(*elements[i].(*interface{})).([]uint8))
+			tstr := ""
+			if *elements[i].(*interface{}) != nil {
+				tstr = fmt.Sprintf("%#s",(*elements[i].(*interface{})).([]uint8))
+			}
 			fmt.Println(val,tstr,"<+++++++",model.Fields[val].Type)
 			switch model.Fields[val].Type {
 			case CharField,TextField:
@@ -314,10 +325,63 @@ func (model *Model) GetRecord(query string)(Objects,error) {
 	return returnobj,nil
 }
 
+//
+func (model *Model) UpdateRecord (object Object, fieldName string, value interface{}) (error) {
+	stmt := "UPDATE `" +model.Name+ "` SET "
+	for index,val := range object.Object {
+		temp,err := model.FormStatement(index,val)
+		if err != nil {
+			return err
+		}
+		stmt += temp +","
+	}
+	stmt = string(stmt[:len(stmt)-1])
+	temp,err := model.FormStatement(fieldName,value)
+	if err != nil {
+		return err
+	}
+	stmt += " WHERE " + temp
+	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
+	defer db.Close()
+	if err != nil {
+		return err
+	}
+	_,err = db.Query("DELETE FROM "+model.Name+" WHERE "+stmt)
+	if err != nil {
+		return err
+	}
+	return model.GetAll()
+}
+
 //NewObject returns a Object struct object with the variables initialised.
 func NewObject() (Object) {
 	var newobj Object = Object{
 		Object : make(map[string]interface{}, 0),
 	}
 	return newobj
+}
+
+//
+func (model *Model) FormStatement (fieldName string, value interface{}) (string,error) {
+	if fieldName == "" {
+		return "",nil
+	}
+	val , ok := model.Fields[fieldName]
+	if !ok {
+		return "",errors.New("Error : No such field "+fieldName+" in the model")
+	}
+	stmt := fieldName + "="
+	switch val.Type {
+	case TextField,CharField :
+		stmt += "\""+value.(string)+"\""
+	case Integer,Float :
+		stmt += fmt.Sprint(value)
+	case Boolean :
+		if value.(bool) {
+			stmt += "TRUE"
+		} else {
+			stmt += "FALSE"
+		}
+	}
+	return stmt, nil
 }
