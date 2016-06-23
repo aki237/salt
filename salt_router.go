@@ -37,6 +37,7 @@ package salt
 import (
 	"errors"
 	"fmt"
+	"github.com/aki237/salt/models"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -258,4 +259,20 @@ func (r *RequestBuffer) GetFormValue(key string) (string,error) {
 	}
 
 	return r.FormValue(key),nil
+}
+
+// ExportFormToModelObject returns a models.Object and error. This function extracts all values from a
+// http form and put it in a models.Object struct.
+func (r *RequestBuffer) ExportFormToModelObject () (models.Object,error) {
+	err := r.ParseForm()
+	returnobj := models.NewObject()
+	var temp string
+	for index,value := range r.Form {
+		for _,d := range value {
+			temp += d
+		}
+		returnobj.Object[index] = temp
+		temp = ""
+	}
+	return returnobj, err
 }
