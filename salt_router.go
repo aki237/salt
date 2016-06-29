@@ -77,7 +77,8 @@ type RequestBuffer struct {
 	URLParameters map[string]interface{}
 }
 
-
+// Cookie type : directly derived from http.Cookie
+type Cookie http.Cookie
 
 //Global Private variable that contains all the registered routes
 var routes []Route
@@ -275,4 +276,28 @@ func (r *RequestBuffer) ExportFormToModelObject () (models.Object,error) {
 		temp = ""
 	}
 	return returnobj, err
+}
+
+// SetCookie is to set cookies to the ResponseBuffer
+func SetCookie (w ResponseBuffer,cookie *Cookie) {
+	var httpCookie http.Cookie = http.Cookie {
+		Name : cookie.Name,
+		Value : cookie.Value,
+		Path  : cookie.Path,
+		Domain : cookie.Domain,
+		Expires : cookie.Expires,
+		RawExpires : cookie.RawExpires,
+		MaxAge : cookie.MaxAge,
+		Secure : cookie.Secure,
+		HttpOnly : cookie.HttpOnly,
+		Raw      : cookie.Raw,
+		Unparsed : cookie.Unparsed,
+	}
+	if v := httpCookie.String(); v != "" {
+		w.Header().Add("Set-Cookie", v)
+	}
+}
+
+func Redirect (w ResponseBuffer, r *RequestBuffer, urlStr string, code int) {
+	http.Redirect(w, r.Request, urlStr, code)
 }
