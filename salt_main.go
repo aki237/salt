@@ -189,7 +189,10 @@ func AddRootApp(app App) (error) {
 			fmt.Println(val.Name)
 			if !val.IsMigrated() {
 				fmt.Println(val.Name," is not migrated yet.Migrating...")
-				return val.Register()
+				err := val.Register()
+				if err != nil {
+					return err
+				}
 			} else {
 				fmt.Println("Already Migrated")
 			}
