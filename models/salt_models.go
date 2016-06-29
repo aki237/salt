@@ -299,24 +299,29 @@ func (model *Model) GetRecord(field string, value interface{})(Objects,error) {
 			if *elements[i].(*interface{}) != nil {
 				tstr = fmt.Sprintf("%#s",(*elements[i].(*interface{})).([]uint8))
 			}
-			fmt.Println(val,tstr,"<+++++++",model.Fields[val].Type)
 			switch model.Fields[val].Type {
 			case CharField,TextField:
 				tobj.Object[val] = tstr
 			case Integer:
-				tobj.Object[val],err = strconv.Atoi(tstr)
-				if err != nil {
-					return Objects{},err
+				if tstr != "" {
+					tobj.Object[val],err = strconv.Atoi(tstr)
+					if err != nil {
+						return Objects{},err
+					}
 				}
 			case Float:
-				tobj.Object[val],err = strconv.ParseFloat(tstr, 64)
-				if err != nil {
-					return Objects{},err
+				if tstr != "" {
+					tobj.Object[val],err = strconv.ParseFloat(tstr, 64)
+					if err != nil {
+						return Objects{},err
+					}
 				}
 			case Boolean:
-				tobj.Object[val],err = strconv.ParseBool(tstr)
-				if err != nil {
-					return Objects{},err
+				if tstr != "" {
+					tobj.Object[val],err = strconv.ParseBool(tstr)
+					if err != nil {
+						return Objects{},err
+					}
 				}
 			}
 		}
@@ -346,7 +351,8 @@ func (model *Model) UpdateRecord (object Object, fieldName string, value interfa
 	if err != nil {
 		return err
 	}
-	_,err = db.Query("DELETE FROM "+model.Name+" WHERE "+stmt)
+	fmt.Println(stmt)
+	_,err = db.Query(stmt)
 	if err != nil {
 		return err
 	}
@@ -373,7 +379,11 @@ func (model *Model) FormStatement (fieldName string, value interface{}) (string,
 	stmt := fieldName + "="
 	switch val.Type {
 	case TextField,CharField :
-		stmt += "\""+value.(string)+"\""
+		if value.(string) != "" {
+			stmt += "\""+value.(string)+"\""
+		} else {
+			stmt += "NULL"
+		}
 	case Integer,Float :
 		stmt += fmt.Sprint(value)
 	case Boolean :
@@ -384,4 +394,66 @@ func (model *Model) FormStatement (fieldName string, value interface{}) (string,
 		}
 	}
 	return stmt, nil
+}
+
+//
+func (model *Model) DoQuery(rawquery string)(Objects,error) {
+	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
+	defer db.Close()
+	if err != nil {
+		return Objects{},err
+	}
+	rows, err := db.Query(rawquery)
+	defer rows.Close()
+	if err != nil {
+		return Objects{},err
+	}
+	arr , err := rows.Columns()
+	if err != nil {
+		return Objects{},err
+	}
+	inner := make([]interface{},len(arr))
+	elements := make([]interface{},len(arr))
+	for i,_ := range inner {
+		elements[i] = &inner[i]
+	}
+	returnobj := make(Objects,0)
+	for rows.Next() {
+		tobj := Object{}
+		tobj.Object = make(map[string]interface{},0)
+		err = rows.Scan(elements...)
+		for i,val := range arr {
+			tstr := ""
+			if *elements[i].(*interface{}) != nil {
+				tstr = fmt.Sprintf("%#s",(*elements[i].(*interface{})).([]uint8))
+			}
+			switch model.Fields[val].Type {
+			case CharField,TextField:
+				tobj.Object[val] = tstr
+			case Integer:
+				if tstr != "" {
+					tobj.Object[val],err = strconv.Atoi(tstr)
+					if err != nil {
+						return Objects{},err
+					}
+				}
+			case Float:
+				if tstr != "" {
+					tobj.Object[val],err = strconv.ParseFloat(tstr, 64)
+					if err != nil {
+						return Objects{},err
+					}
+				}
+			case Boolean:
+				if tstr != "" {
+					tobj.Object[val],err = strconv.ParseBool(tstr)
+					if err != nil {
+						return Objects{},err
+					}
+				}
+			}
+		}
+		returnobj = append(returnobj,tobj)
+	}
+	return returnobj,nil
 }
