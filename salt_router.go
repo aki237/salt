@@ -52,13 +52,13 @@ type RegexpMap struct {
 	typeMaps map[string]string
 }
 
-
+type Handler func(ResponseBuffer , *RequestBuffer)
 
 //Route is the type that contains routing information for different urls registered
 type Route struct {
 	RegexpPattern *RegexpMap
 	Pattern       string
-	Handler       func(ResponseBuffer, *RequestBuffer)
+	Handler       Handler
 	Name          string
 }
 
@@ -85,7 +85,7 @@ var routes []Route
 
 //This is the variable of the type func(w ResponseBuffer , r *RequestBuffer),
 //This variable can be configured to run a custom 404 function, instead of the default one.
-var Func404 func(w ResponseBuffer , r *RequestBuffer) = Default404
+var Func404 Handler = Default404
 
 //Default404 is the default 404 Not Found function.
 func Default404(w ResponseBuffer , r *RequestBuffer)  {
@@ -93,7 +93,7 @@ func Default404(w ResponseBuffer , r *RequestBuffer)  {
 }
 
 //This is used to add a custom salt handler function for the salt app.
-func Add404(Handler  func(ResponseBuffer, *RequestBuffer))  {
+func Add404(Handler  Handler)  {
 	Func404 = Handler
 }
 
@@ -148,7 +148,7 @@ func router(w http.ResponseWriter, r *http.Request) {
 //    - This name is used to modify any route during the runtime using the ModifyRoute function in this package.
 // +  handler  -  The function which has to be called when the url pattern matches with the registered routes, with the request and the response buffers as parameters.
 //    - This is similar to the handler passed to http.HandleFunc but with the modified structs ResponseBuffer and RequestBuffer.
-func AddRoute(pattern string, routename string, handler func(ResponseBuffer, *RequestBuffer)) (error) {
+func AddRoute(pattern string, routename string, handler Handler) (error) {
 	exp, err := Validate(pattern)
 	if err != nil {
 		return err
@@ -223,7 +223,7 @@ func Validate(pattern string) (*RegexpMap, error) {
 // + pattern   -   New pattern string.
 //
 // + handler   -   The new handler for the pattern.
-func ModifyRoute(oldname string, newname string, pattern string, handler func(ResponseBuffer, *RequestBuffer)) error {
+func ModifyRoute(oldname string, newname string, pattern string, handler Handler) error {
 	var index int
 	for index, _ = range routes {
 		if routes[index].Name == oldname {
@@ -272,7 +272,9 @@ func (r *RequestBuffer) ExportFormToModelObject () (models.Object,error) {
 		for _,d := range value {
 			temp += d
 		}
-		returnobj.Object[index] = temp
+		if temp != "" {
+			returnobj.Object[index] = temp
+		}
 		temp = ""
 	}
 	return returnobj, err

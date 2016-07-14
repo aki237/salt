@@ -19,7 +19,7 @@ import (
 type URL struct {
 	Pattern string
 	Routename string
-	Handler func(ResponseBuffer, *RequestBuffer)
+	Handler Handler
 }
 
 //Array of the URL Type
