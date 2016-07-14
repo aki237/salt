@@ -33,6 +33,7 @@ type Model struct {
 	Fields           Fields
 	Objects          Objects
 	PrimaryKey       string
+	BelongsTo        *Model
 }
 
 //Models type : array of Model struct
@@ -175,6 +176,24 @@ func (model *Model) AddToDataBase() (error) {
 		}
 		query += ","
 	}
+	if (model.hasBelongsTo()) {
+		if val, ok := model.BelongsTo.Fields[model.BelongsTo.PrimaryKey]; ok {
+			query += model.BelongsTo.Name + "_" + model.BelongsTo.PrimaryKey
+			switch val.Type {
+			case CharField:
+				query += " varchar(255)"
+			case TextField:
+				query += " TEXT"
+			case Integer:
+				query += " INT"
+			case Float:
+				query += " DOUBLE"
+			case Boolean:
+				query += " BOOL"
+			}
+			query += " NOT NULL,"
+		}
+	}
 	if ( model.PrimaryKey != "" ) {
 		query += "PRIMARY KEY(" + model.PrimaryKey + ")"
 	} else {
@@ -218,6 +237,9 @@ func (model *Model) AddNewRecord (object Object) (error) {
 	for _,val := range arr {
 		if value,ok := object.Object[val] ; ok {
 			columns += "`" + val + "`,"
+			if _,ok := model.Fields[val] ; !ok {
+				model.Fields[val] = model.BelongsTo.Fields[val[len(model.BelongsTo.Name)+1:]]
+			}
 			switch model.Fields[val].Type {
 			case CharField,TextField:
 				values += "\""+value.(string)+"\","
@@ -236,6 +258,7 @@ func (model *Model) AddNewRecord (object Object) (error) {
 	}
 	columns = columns[:len(columns)-1]+")"
 	values = values[:len(values)-1]+")"
+	fmt.Println(query+columns+values)
 	_, err = db.Query(query+columns+values)
 	if err != nil {
 		return err
@@ -265,24 +288,25 @@ func (model *Model) DeleteRecord(field string, value interface{})(error) {
 func (model *Model) GetRecord(field string, value interface{})(Objects,error) {
 	query,err := model.FormStatement(field,value)
 	if err != nil {
-		return Objects{},err
+		return make(Objects,0),err
 	}
 	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
 	defer db.Close()
 	if err != nil {
-		return Objects{},err
+		return make(Objects,0),err
 	}
 	rows, err := db.Query("SELECT * FROM `"+model.Name+"` WHERE "+query)
+	fmt.Println("SELECT * FROM `"+model.Name+"` WHERE "+query)
 	if query == "" {
 		rows, err = db.Query("SELECT * FROM `"+model.Name+"`")
 	}
 	defer rows.Close()
 	if err != nil {
-		return Objects{},err
+		return make(Objects,0),err
 	}
 	arr , err := rows.Columns()
 	if err != nil {
-		return Objects{},err
+		return make(Objects,0),err
 	}
 	inner := make([]interface{},len(arr))
 	elements := make([]interface{},len(arr))
@@ -306,21 +330,21 @@ func (model *Model) GetRecord(field string, value interface{})(Objects,error) {
 				if tstr != "" {
 					tobj.Object[val],err = strconv.Atoi(tstr)
 					if err != nil {
-						return Objects{},err
+						return make(Objects,0),err
 					}
 				}
 			case Float:
 				if tstr != "" {
 					tobj.Object[val],err = strconv.ParseFloat(tstr, 64)
 					if err != nil {
-						return Objects{},err
+						return make(Objects,0),err
 					}
 				}
 			case Boolean:
 				if tstr != "" {
 					tobj.Object[val],err = strconv.ParseBool(tstr)
 					if err != nil {
-						return Objects{},err
+						return make(Objects,0),err
 					}
 				}
 			}
@@ -374,7 +398,14 @@ func (model *Model) FormStatement (fieldName string, value interface{}) (string,
 	}
 	val , ok := model.Fields[fieldName]
 	if !ok {
-		return "",errors.New("Error : No such field "+fieldName+" in the model")
+		if (model.hasBelongsTo()) {
+			val , ok = model.BelongsTo.Fields[fieldName[(len(model.BelongsTo.Name)+1):]]
+			if !ok {
+				return "",errors.New("Error : No such field "+fieldName[(len(model.BelongsTo.Name)+1):]+" in the model or it's owners.")
+			}
+		} else {
+			return "",errors.New("Error : No such field "+fieldName+" in the model")
+		}
 	}
 	stmt := fieldName + "="
 	switch val.Type {
@@ -401,16 +432,16 @@ func (model *Model) DoQuery(rawquery string)(Objects,error) {
 	db, err := sql.Open("mysql", database.Username+":"+database.Password+"@/"+database.Database)
 	defer db.Close()
 	if err != nil {
-		return Objects{},err
+		return make(Objects,0),err
 	}
 	rows, err := db.Query(rawquery)
 	defer rows.Close()
 	if err != nil {
-		return Objects{},err
+		return make(Objects,0),err
 	}
 	arr , err := rows.Columns()
 	if err != nil {
-		return Objects{},err
+		return make(Objects,0),err
 	}
 	inner := make([]interface{},len(arr))
 	elements := make([]interface{},len(arr))
@@ -434,21 +465,21 @@ func (model *Model) DoQuery(rawquery string)(Objects,error) {
 				if tstr != "" {
 					tobj.Object[val],err = strconv.Atoi(tstr)
 					if err != nil {
-						return Objects{},err
+						return make(Objects,0),err
 					}
 				}
 			case Float:
 				if tstr != "" {
 					tobj.Object[val],err = strconv.ParseFloat(tstr, 64)
 					if err != nil {
-						return Objects{},err
+						return make(Objects,0),err
 					}
 				}
 			case Boolean:
 				if tstr != "" {
 					tobj.Object[val],err = strconv.ParseBool(tstr)
 					if err != nil {
-						return Objects{},err
+						return make(Objects,0),err
 					}
 				}
 			}
@@ -456,4 +487,28 @@ func (model *Model) DoQuery(rawquery string)(Objects,error) {
 		returnobj = append(returnobj,tobj)
 	}
 	return returnobj,nil
+}
+
+//
+func (model Model) hasBelongsTo () (bool) {
+	if ((model.Name == model.BelongsTo.Name) || (model.BelongsTo.PrimaryKey == "") ) {
+		return false
+	}
+	return true
+}
+
+func (model *Model) GetAllRecordsBelongingTo(user Object) (Objects,error) {
+	if (! model.hasBelongsTo()) {
+		return make(Objects,0),errors.New("Error : The model passed ("+model.Name+") doesn't have a valid BelongsTo model Field")
+	}
+	if val , ok := user.Object[model.BelongsTo.PrimaryKey]; ok {
+		query := "SELECT * FROM `" + model.Name + "` WHERE " + model.BelongsTo.Name + "_"
+		wherestmt,err  := model.BelongsTo.FormStatement(model.BelongsTo.PrimaryKey, val)
+		if err != nil {
+			return make(Objects,0),err
+		}
+		query += wherestmt
+		return model.DoQuery(query)
+	}
+	return make(Objects,0),errors.New("Error : The passed Object doesn't have the required field.")
 }
